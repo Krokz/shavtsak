@@ -1,4 +1,3 @@
-import json
 import random
 import logging
 from flask import Flask, render_template, request, jsonify
@@ -106,7 +105,7 @@ def generate_shifts():
 
         # Shuffle soldiers to randomize their order
         random.shuffle(soldiers)
-
+        warnings = []
         generated_shifts = []
         current_soldier_index = 0
         soldier_last_shift_end = {soldier.id: datetime.min for soldier in soldiers}
@@ -152,6 +151,7 @@ def generate_shifts():
                         elif not station.requires_mag or (station.requires_mag and any(s.is_mag_certified for s in assigned_soldiers)):
                             assigned_soldiers.append(soldier)
                             required_soldiers -= 1
+
                         soldier_last_shift_end[soldier.id] = end_time
 
                 if assigned_soldiers:
@@ -163,11 +163,10 @@ def generate_shifts():
                     }
                     generated_shifts.append(shift)
                 else:
-                    logging.error(f"Not enough soldiers to fill the required shifts for station: {station.name}")
-                    return jsonify({'error': f'Not enough soldiers to fill all required shifts for station: {station.name}'}), 400
+                    warnings.append(f"Not enough soldiers to fill the required shifts for station: {station.name}")
 
         logging.debug(f"Generated shifts: {generated_shifts}")
-        return jsonify({'generated_shifts': generated_shifts})
+        return jsonify({'generated_shifts': generated_shifts, 'warnings': warnings})
     except Exception as e:
         logging.error(f"Error generating shifts: {e}")
         return jsonify({'error': 'Failed to generate shifts'}), 500
